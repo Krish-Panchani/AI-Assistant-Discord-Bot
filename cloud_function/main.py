@@ -1,3 +1,18 @@
+# Copyright 2023 Google LLC & Thunder Develops X Krish Panchani
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 import functions_framework  # Import the functions_framework library for HTTP functions
 import vertexai  # Import the vertexai library for AI model handling
 from vertexai.language_models import ChatModel, InputOutputTextPair
@@ -8,6 +23,11 @@ PROJECT_ID = "YOUR-PROJECT-ID"
 
 # Define a function named "summarize" that takes a text input and generates a response
 def gen_response(text: str):
+
+    # print(text) #debugging purpose
+
+    vertexai.init(project=PROJECT_ID, location="asia-southeast1")
+
     parameters = {
         "candidate_count": 1,
         "max_output_tokens": 200,
@@ -19,15 +39,26 @@ def gen_response(text: str):
     # Initialize the Vertex AI project with the provided project ID
     vertexai.init(project=PROJECT_ID)
 
-    # Load the pre-trained TextGenerationModel named "text-bison@001"
+    # Load the pre-trained chat-bison model from Vertex AI"
+
     model = ChatModel.from_pretrained("chat-bison")
 
-    # Generate a response by providing the input text and model parameters
+    # Start a chat session with the model
     chat = model.start_chat(
-    context="""You are Support assistant of Thunder Develops Company""",
-)
+    context="""You are Support assistant of Thunder Develops Company.
+Thunder Develops is providing service like minecraft hosting, discord bot hosting & web service.
+Panel Link: https://panel.thunderdevelops.in
+Webiste: https://www.thunderdevelops.in
+client often ask you questions about minecaft server development.""",
+    )
 
-    response = chat.send_message("{text}", **parameters)
+    PROMPT = """
+    {text}
+    """
+    prompt = PROMPT.format(text=text)
+
+    response = chat.send_message(prompt, **parameters)
+
     # Print the response from the model
     print(f"Response from Model: {response.text}")
 
@@ -37,14 +68,13 @@ def gen_response(text: str):
 # Define an HTTP function using the functions_framework library
 @functions_framework.http
 def assistant_vertex(request):
-    # Process and clean the input data received from the HTTP request
-    parsed_data = (str(request.data)).replace('"', "").replace("'", "").replace(",", "").replace("\n", "")
 
-    # Call the "summarize" function with the cleaned input data to generate a model response
-    model_response = gen_response(parsed_data)
+    # Call the chatbot function with the message from the HTTP request
+    model_response = gen_response(request.data)
 
     # Define headers for the HTTP response to allow cross-origin requests
     headers = {"Access-Control-Allow-Origin": "*"}
 
     # Return the model response, HTTP status code 200 (OK), and the headers
     return (model_response, 200, headers)
+
